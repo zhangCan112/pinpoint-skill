@@ -56,6 +56,7 @@ from annotations import (
 from server_common import (
     claim_lock as _claim_lock,
     clear_lock as _clear_lock,
+    ensure_workspace,
     find_free_port as _find_free_port,
     lock_pid as _lock_pid,
     open_preview_browser,
@@ -695,7 +696,7 @@ def main(argv: Optional[list] = None) -> int:
 
     docs_dir = workspace / DOCS_DIR_NAME
     if not docs_dir.exists():
-        workspace.mkdir(parents=True, exist_ok=True)
+        ensure_workspace(workspace)
         docs_dir.mkdir(parents=True, exist_ok=True)
 
     lock_file = _lock_file(workspace)
@@ -707,7 +708,7 @@ def main(argv: Optional[list] = None) -> int:
                 existing, open_browser=not args.no_browser, requested_port=args.port,
             )
         try:
-            workspace.mkdir(parents=True, exist_ok=True)
+            ensure_workspace(workspace)
         except OSError as exc:
             logger.error('cannot create workspace directory: %s (%s)', workspace, exc)
             return 1
@@ -751,7 +752,7 @@ def main(argv: Optional[list] = None) -> int:
         return 1
 
     try:
-        workspace.mkdir(parents=True, exist_ok=True)
+        ensure_workspace(workspace)
     except OSError as exc:
         logger.error('cannot create workspace directory: %s (%s)', workspace, exc)
         return 1

@@ -58,6 +58,8 @@ Use chat instead when:
 
 Work from the skill directory (`${SKILL_DIR}/scripts`). Use `python` on
 Windows, `python3` on macOS/Linux. The workspace is `<project>/.pinpoint/`.
+It is runtime state, self-ignored from git (a `.gitignore` with `*` is
+written into it on creation), so nothing there can reach the remote.
 
 1. **Render your reply into a document.** Write the reply as markdown, then:
 

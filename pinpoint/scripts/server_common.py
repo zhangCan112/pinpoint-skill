@@ -29,6 +29,31 @@ from typing import Optional
 MIN_PORT = 1
 MAX_PORT = 65535
 
+DEFAULT_WORKSPACE_NAME = '.pinpoint'
+SELF_IGNORE_CONTENT = '*\n'
+
+
+def ensure_workspace(workspace: Path) -> None:
+    """Create the workspace directory; guard the default name from git.
+
+    The default ``.pinpoint`` workspace is runtime state dropped into the
+    host project, so it ships a self-ignore ``.gitignore`` (content
+    ``*``): nothing inside — this file included — can be committed by
+    accident. A custom-named workspace is left alone; the user chose that
+    directory and may want it tracked. Failure to write the guard is
+    non-fatal.
+    """
+    workspace.mkdir(parents=True, exist_ok=True)
+    if workspace.name != DEFAULT_WORKSPACE_NAME:
+        return
+    ignore_file = workspace / '.gitignore'
+    if ignore_file.exists():
+        return
+    try:
+        ignore_file.write_text(SELF_IGNORE_CONTENT, encoding='utf-8')
+    except OSError:
+        pass
+
 
 # Windows PowerShell as mounted inside WSL; probed when ``[interop]
 # appendWindowsPath=false`` keeps interop but drops Windows dirs from PATH.

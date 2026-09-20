@@ -36,6 +36,7 @@ import markdown as md_lib
 from bs4 import BeautifulSoup, Comment, NavigableString, Tag
 
 from annotations import parse_doc_text
+from server_common import ensure_workspace
 
 MARKDOWN_EXTENSIONS = ['tables']
 
@@ -378,6 +379,7 @@ def build_doc_from_input(input_path: Path, workspace: Path,
     """Create workspace/docs/<name>.html from any supported input."""
     docs_dir = workspace / 'docs'
     assets_dir = workspace / 'assets'
+    ensure_workspace(workspace)
     docs_dir.mkdir(parents=True, exist_ok=True)
 
     doc_name = name or slugify(input_path.stem)

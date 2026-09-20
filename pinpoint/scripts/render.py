@@ -18,7 +18,9 @@ Usage:
                 DIR/docs/<name>.html, images to DIR/assets/
 
 Dependencies:
-    markdown, beautifulsoup4 (CLI/server only; check.py stays stdlib-only)
+    markdown, beautifulsoup4 (CLI/server only; check.py stays stdlib-only).
+    Auto-installed via pip on first ModuleNotFoundError
+    (server_common.import_or_install).
 """
 
 import argparse
@@ -32,11 +34,14 @@ from collections import namedtuple
 from pathlib import Path
 from typing import Optional
 
+from annotations import parse_doc_text
+from server_common import ensure_workspace, import_or_install
+
+import_or_install('markdown')
+import_or_install('bs4', 'beautifulsoup4')
+
 import markdown as md_lib
 from bs4 import BeautifulSoup, Comment, NavigableString, Tag
-
-from annotations import parse_doc_text
-from server_common import ensure_workspace
 
 MARKDOWN_EXTENSIONS = ['tables']
 

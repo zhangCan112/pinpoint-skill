@@ -21,6 +21,7 @@ import platform
 import shutil
 import socket
 import subprocess
+import sys
 import webbrowser
 from pathlib import Path
 from typing import Optional
@@ -53,6 +54,36 @@ def ensure_workspace(workspace: Path) -> None:
         ignore_file.write_text(SELF_IGNORE_CONTENT, encoding='utf-8')
     except OSError:
         pass
+
+
+def import_or_install(module_name: str, pip_package: Optional[str] = None):
+    """Import a third-party module, pip-installing it only on real failure.
+
+    The healthy path never touches pip: this acts only when the import
+    raises ``ModuleNotFoundError``. ``pip_package`` names the distribution
+    when it differs from the import name (e.g. ``bs4`` ->
+    ``beautifulsoup4``). If the install does not fix the import, the
+    original error propagates unchanged.
+    """
+    import importlib
+
+    try:
+        return importlib.import_module(module_name)
+    except ModuleNotFoundError:
+        pass
+
+    package = pip_package or module_name
+    print(
+        f'[pinpoint] module {module_name!r} missing; '
+        f'installing {package} via pip ...',
+        file=sys.stderr,
+        flush=True,
+    )
+    subprocess.check_call([
+        sys.executable, '-m', 'pip', 'install',
+        '--disable-pip-version-check', '--quiet', package,
+    ])
+    return importlib.import_module(module_name)
 
 
 # Windows PowerShell as mounted inside WSL; probed when ``[interop]

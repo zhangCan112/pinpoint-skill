@@ -22,7 +22,7 @@ Usage:
     --shutdown           stop the running server for this workspace
 
 Dependencies:
-    flask>=3.0.0
+    flask>=3.0.0 (auto-installed via pip on first ModuleNotFoundError)
 """
 
 import argparse
@@ -42,8 +42,6 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Optional
 
-from flask import Flask, jsonify, request, send_from_directory
-
 from annotations import (
     assign_temp_ids,
     find_by_id,
@@ -58,6 +56,7 @@ from server_common import (
     clear_lock as _clear_lock,
     ensure_workspace,
     find_free_port as _find_free_port,
+    import_or_install,
     lock_pid as _lock_pid,
     open_preview_browser,
     popen_detached as _popen_detached,
@@ -66,6 +65,10 @@ from server_common import (
     release_lock as _release_lock,
     validate_port as _validate_port,
 )
+
+import_or_install('flask')
+
+from flask import Flask, jsonify, request, send_from_directory
 
 logger = logging.getLogger('pinpoint')
 

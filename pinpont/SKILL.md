@@ -106,6 +106,19 @@ Windows, `python3` on macOS/Linux. The workspace is `<project>/.pinpont/`.
 
 Protocol details (attributes, ids, audit records): [`references/protocol.md`](references/protocol.md).
 
+## Multiple topics in one conversation
+
+Each topic gets its own document. Before opening a new document:
+
+1. Empty the previous topic's inbox first (`check.py` shows no
+   annotations). Consume or withdraw every leftover note.
+2. Name the new document after its topic (`--name <topic>`). Rendering
+   over a document that still has pending annotations is refused — the
+   overwrite guard protects active conversations.
+3. A converged document stays in `docs/` and the sidebar for reference.
+   To retire it from inbox and sidebar, move it out of `docs/` (for
+   example to `.pinpont/archive/`); both scan `docs/*.html` only.
+
 ## Editing discipline
 
 These rules keep every other annotation's anchor alive. Annotations are

@@ -248,6 +248,31 @@ class TestCli:
         out = (tmp_path / 'docs' / 'bom.html').read_text(encoding='utf-8')
         assert '<h1>Title</h1>' in out
 
+    def test_refuses_to_overwrite_doc_with_pending_annotations(self, tmp_path: Path):
+        src = tmp_path / 'notes.md'
+        src.write_text('# Hi\n\nBody\n', encoding='utf-8')
+        assert render.main(['--out', str(tmp_path), str(src)]) == 0
+        # Mark an annotation on disk, then try to re-render the same name.
+        doc = tmp_path / 'docs' / 'notes.html'
+        doc.write_text(
+            doc.read_text(encoding='utf-8').replace(
+                '<h1>Hi</h1>',
+                '<h1 id="_pp_0" data-edit-target="true" data-edit-annotation="keep me">Hi</h1>',
+            ),
+            encoding='utf-8',
+        )
+        rc = render.main(['--out', str(tmp_path), str(src)])
+        assert rc != 0
+        assert 'keep me' in doc.read_text(encoding='utf-8')
+
+    def test_clean_doc_can_be_rerendered_with_new_name(self, tmp_path: Path):
+        src = tmp_path / 'notes.md'
+        src.write_text('# Hi\n\nBody\n', encoding='utf-8')
+        assert render.main(['--out', str(tmp_path), str(src)]) == 0
+        rc = render.main(['--out', str(tmp_path), '--name', 'notes-v2', str(src)])
+        assert rc == 0
+        assert (tmp_path / 'docs' / 'notes-v2.html').exists()
+
     def test_name_override(self, tmp_path: Path):
         src = tmp_path / 'notes.md'
         src.write_text('x\n', encoding='utf-8')

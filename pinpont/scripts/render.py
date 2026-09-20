@@ -27,12 +27,15 @@ import html.entities
 import re
 import shutil
 import sys
+import xml.etree.ElementTree as ET
 from collections import namedtuple
 from pathlib import Path
 from typing import Optional
 
 import markdown as md_lib
 from bs4 import BeautifulSoup, Comment, NavigableString, Tag
+
+from annotations import parse_doc_text
 
 MARKDOWN_EXTENSIONS = ['tables']
 
@@ -300,6 +303,31 @@ def slugify(name: str) -> str:
     return slug or 'doc'
 
 
+class RenderError(Exception):
+    """Refused input: overwrite guard or unreadable state."""
+
+
+def _overwrite_guard(out_path: Path) -> Optional[str]:
+    """Return a reason string when the existing doc must not be overwritten.
+
+    A doc with pending annotations is an active conversation: replacing it
+    would destroy the user's unconsumed notes. An unparsable doc is treated
+    the same way (we cannot prove it is clean).
+    """
+    try:
+        text = out_path.read_text(encoding='utf-8-sig')
+    except OSError as exc:
+        return f'cannot be read ({exc})'
+    try:
+        root = parse_doc_text(text)
+    except ET.ParseError:
+        return 'is not well-formed'
+    for elem in root.iter():
+        if elem.get('data-edit-target') == 'true':
+            return 'still has pending annotations'
+    return None
+
+
 def _collect_md_images(text: str, base_dir: Path) -> dict:
     """Map local image paths referenced in markdown -> absolute source path."""
     mapping = {}
@@ -377,6 +405,13 @@ def build_doc_from_input(input_path: Path, workspace: Path,
         title = doc_name
 
     out_path = docs_dir / f'{doc_name}.html'
+    if out_path.exists():
+        guard = _overwrite_guard(out_path)
+        if guard is not None:
+            raise RenderError(
+                f'{out_path.name} already exists and {guard}; '
+                f'use --name to start a new document'
+            )
     out_path.write_text(doc_document(title, body), encoding='utf-8')
     return out_path
 
@@ -403,7 +438,11 @@ def main(argv: Optional[list] = None) -> int:
         print(f'Error: input not found: {input_path}', file=sys.stderr)
         return 1
 
-    out_path = build_doc_from_input(input_path, Path(args.out).resolve(), args.name)
+    try:
+        out_path = build_doc_from_input(input_path, Path(args.out).resolve(), args.name)
+    except RenderError as exc:
+        print(f'Error: {exc}', file=sys.stderr)
+        return 1
     print(str(out_path))
     return 0
 

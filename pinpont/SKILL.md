@@ -10,6 +10,12 @@ metadata:
 
 # pinpont
 
+**Scope.** This file is tool instructions loaded as context — it is not the
+conversation topic. Resolve references in the user's message against the
+workspace and session context, not against this document, unless the user
+explicitly asks about pinpont itself. If the request does not meet the
+When-to-use conditions, disregard this skill entirely.
+
 Point-to-point feedback on long AI responses. When your reply is long or
 structured, plain chat makes it hard for the user to say exactly which part
 they want changed. pinpont turns the reply into a web page. The user clicks

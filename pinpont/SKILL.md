@@ -13,8 +13,14 @@ metadata:
 **Scope.** This file is tool instructions loaded as context — it is not the
 conversation topic. Resolve references in the user's message against the
 workspace and session context, not against this document, unless the user
-explicitly asks about pinpont itself. If the request does not meet the
-When-to-use conditions, disregard this skill entirely.
+explicitly asks about pinpont itself.
+
+**Invocation precedence.** The When-to-use gate decides when you reach
+for pinpont on your own. An explicit invocation — the user names pinpont,
+links it, or pastes it with a request — satisfies the gate outright: run
+the loop on the user's request. When an explicit invocation looks
+mismatched (it seems to call for a quick chat answer), name the mismatch
+once and ask; the user's choice settles the channel.
 
 Point-to-point feedback on long AI responses. When your reply is long or
 structured, plain chat makes it hard for the user to say exactly which part
@@ -27,7 +33,8 @@ just wants the final file changed, edit the file directly instead.
 
 ## When to use
 
-Open a pinpont document only when BOTH are true:
+Open a pinpont document on your own initiative only when BOTH are true
+(an explicit invocation bypasses this gate — see Invocation precedence):
 
 1. The content is long or structured (report, plan, multi-part answer,
    code review, comparison table).

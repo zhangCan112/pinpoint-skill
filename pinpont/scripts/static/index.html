@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pinpont - Annotated review</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div id="app">
+        <div id="panel-left">
+            <div class="panel-header">Documents</div>
+            <div id="doc-list"></div>
+        </div>
+        <div id="panel-center">
+            <div id="doc-toolbar">
+                <span id="doc-title">Select a document on the left to begin</span>
+                <span id="doc-status"></span>
+                <button id="btn-reload" class="tool-btn" type="button" title="Reload from disk">Reload</button>
+            </div>
+            <div id="doc-scroll">
+                <div id="doc-content"></div>
+            </div>
+        </div>
+        <div id="panel-right">
+            <div class="panel-header">Annotate / Edit</div>
+            <div id="pending-status" class="pending-status"></div>
+            <div class="section-label">Selected element</div>
+            <div id="selected-element" class="selected-element empty">
+                Click a block in the document to select it
+            </div>
+            <div id="annotation-input" class="hidden">
+                <div class="section-label">Annotation (AI will change this)</div>
+                <textarea id="annotation-text" placeholder="Describe what should be different here..."></textarea>
+                <button id="btn-add-annotation" type="button">Add annotation</button>
+            </div>
+            <div id="edit-input" class="hidden">
+                <div class="section-label">Direct edit (no AI)</div>
+                <textarea id="edit-text" placeholder="New text for this element..."></textarea>
+                <button id="btn-stage-edit" type="button">Stage edit</button>
+            </div>
+            <div id="annotation-list-section">
+                <div class="section-label">Annotations on this document</div>
+                <div id="annotations"></div>
+            </div>
+            <div id="actions">
+                <button id="btn-undo" type="button" disabled>Undo edit</button>
+                <button id="btn-apply" class="btn-primary" type="button">Apply changes</button>
+                <button id="btn-exit" class="btn-exit" type="button">Exit</button>
+            </div>
+        </div>
+    </div>
+    <div id="modal-overlay" class="hidden">
+        <div id="modal">
+            <div id="modal-message"></div>
+            <div id="modal-buttons">
+                <button id="modal-confirm" type="button">Submit</button>
+                <button id="modal-cancel" type="button">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>

@@ -217,5 +217,7 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# pinpont conversation workspace (runtime state, not source)
+# pinpoint conversation workspace (runtime state, not source)
+.pinpoint/
+# legacy workspaces created before the pinpont->pinpoint rename
 .pinpont/

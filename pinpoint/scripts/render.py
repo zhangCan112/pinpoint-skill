@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-pinpont - Render an AI response into the HTML intermediate representation.
+pinpoint - Render an AI response into the HTML intermediate representation.
 
 Intake formats (all normalized to the same IR):
     *.md / *.markdown  -> block-rendered HTML (code fenced blocks get
@@ -14,7 +14,7 @@ assigns session-local ids only while a preview is running.
 Usage:
     python scripts/render.py <input> [--name NAME] [--out DIR]
 
-    --out DIR   pinpont workspace root (default: ./.pinpont); docs go to
+    --out DIR   pinpoint workspace root (default: ./.pinpoint); docs go to
                 DIR/docs/<name>.html, images to DIR/assets/
 
 Dependencies:
@@ -418,11 +418,11 @@ def build_doc_from_input(input_path: Path, workspace: Path,
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description='Render an AI response into the pinpont HTML IR',
+        description='Render an AI response into the pinpoint HTML IR',
     )
     parser.add_argument('input', help='Input file: .md, .html, or image')
     parser.add_argument('--name', help='Document name (default: slugified input stem)')
-    parser.add_argument('--out', default='.pinpont', help='Workspace root (default: ./.pinpont)')
+    parser.add_argument('--out', default='.pinpoint', help='Workspace root (default: ./.pinpoint)')
     return parser
 
 

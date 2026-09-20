@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-pinpont - Local Preview Server Helpers
+pinpoint - Local Preview Server Helpers
 
 Adapted from ppt-master's scripts/server_common.py (battle-tested there).
 Owns browser dispatch, the cross-platform process-liveness check and the

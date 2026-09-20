@@ -1,6 +1,6 @@
 # Editor server
 
-Browser editor behind pinpont. Behavior and lifecycle adapted from
+Browser editor behind pinpoint. Behavior and lifecycle adapted from
 ppt-master's live preview server. The loop in `SKILL.md` owns when to
 launch it and how annotations get applied.
 
@@ -16,7 +16,7 @@ python ${SKILL_DIR}/scripts/server.py --timeout 0           # never auto-stop
 
 (Use `python3` on macOS/Linux.) The launcher starts the server detached,
 waits for `/api/health`, records `pid` + `port` in
-`<project>/.pinpont/lock.json`, then opens the browser.
+`<project>/.pinpoint/lock.json`, then opens the browser.
 
 ## Lifecycle
 
@@ -48,7 +48,7 @@ waits for `/api/health`, records `pid` + `port` in
   **Undo** drops the last staged edit on the current document (LIFO).
 
 **Apply changes** writes staged annotations and direct edits to
-`.pinpont/docs/*.html`, appends audit records, and keeps the server
+`.pinpoint/docs/*.html`, appends audit records, and keeps the server
 running. After the AI consumes notes, the user presses **Reload** to see
 the revised document.
 

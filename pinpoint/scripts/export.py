@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-pinpont - Export the HTML IR back to clean markdown.
+pinpoint - Export the HTML IR back to clean markdown.
 
 Drops all runtime metadata (annotation attributes, session ids) and emits
 the content only. Use when a document has converged and the user wants a
@@ -165,7 +165,7 @@ def export_document(doc_path: Path) -> str:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description='Export a pinpont HTML doc to clean markdown',
+        description='Export a pinpoint HTML doc to clean markdown',
     )
     parser.add_argument('doc', help='Path to the .html doc')
     parser.add_argument('-o', '--output', help='Write to this file (default: stdout)')

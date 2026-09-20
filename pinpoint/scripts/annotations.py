@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-pinpont - Inline annotation attributes on HTML elements.
+pinpoint - Inline annotation attributes on HTML elements.
 
 Annotations are data attributes ON the target element, adapted from
 ppt-master's proven SVG mechanism (data-edit-target / data-edit-annotation).
@@ -44,7 +44,7 @@ def strip_doctype(text: str) -> str:
 
 
 def parse_doc_text(text: str) -> ET.Element:
-    """Parse a pinpont document (HTML IR) into an ElementTree root."""
+    """Parse a pinpoint document (HTML IR) into an ElementTree root."""
     return ET.fromstring(strip_doctype(text))
 
 

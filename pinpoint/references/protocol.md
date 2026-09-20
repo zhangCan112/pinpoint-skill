@@ -39,13 +39,13 @@ user clicks element, writes note, presses "Add annotation"
         ▼
 "Apply changes"  → attributes written to docs/<name>.html
         │           + annotation_saved / annotation_updated / annotation_removed
-        │             record appended to .pinpont/annotations.jsonl
+        │             record appended to .pinpoint/annotations.jsonl
         ▼
 check.py lists pending notes  →  AI edits the doc, resolves the note
         │
         ▼
 AI removes both attributes from the element (ack)
-        + appends annotation_applied record to .pinpont/annotations.jsonl
+        + appends annotation_applied record to .pinpoint/annotations.jsonl
         ▼
 next round, or convergence
 ```
@@ -59,7 +59,7 @@ nor explained is a protocol violation.
 
 The user can edit the text of an element themselves in the browser.
 Staged edits are held in server memory and written by **Apply changes**.
-Each edit appends a record to `.pinpont/edits.jsonl`:
+Each edit appends a record to `.pinpoint/edits.jsonl`:
 
 ```json
 {"ts": 0, "file": "<name>.html", "element_id": "<id>", "action": "edit",
@@ -73,7 +73,7 @@ are plain text — inline markup would be flattened, so the server refuses.
 ## Audit files
 
 All JSONL, one record per line, UTF-8, under the workspace root
-(`<project>/.pinpont/`):
+(`<project>/.pinpoint/`):
 
 | File | Written by | Records |
 |---|---|---|
@@ -90,7 +90,7 @@ Common record shape: `{ts, file, element_id, action, old, new}`.
 (no ids, no annotations, XML-well-formed):
 
 - **Markdown** — split into top-level blocks; fenced code blocks become
-  per-line spans; local images are copied to `.pinpont/assets/` and `src`
+  per-line spans; local images are copied to `.pinpoint/assets/` and `src`
   rewritten to `../assets/<name>`; named HTML entities are converted to
   numeric form so ElementTree can parse the result.
 - **HTML** — sanitized (scripts, iframes, objects, embeds, `on*` handlers,

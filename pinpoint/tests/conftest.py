@@ -1,4 +1,4 @@
-"""Test bootstrap: make pinpont/scripts importable."""
+"""Test bootstrap: make pinpoint/scripts importable."""
 
 import sys
 from pathlib import Path

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-pinpont - Browser annotation editor server.
+pinpoint - Browser annotation editor server.
 
-Flask backend for the pinpont web editor: serves the UI, lists docs,
+Flask backend for the pinpoint web editor: serves the UI, lists docs,
 stages annotations and direct text edits in memory, and writes them to
 docs/*.html only on Apply (save-all), appending audit history to
 annotations.jsonl / edits.jsonl.
@@ -14,7 +14,7 @@ Host/Origin header checks, path-traversal guards.
 Usage:
     python scripts/server.py [workspace] [options]
 
-    workspace            pinpont workspace root (default: ./.pinpont)
+    workspace            pinpoint workspace root (default: ./.pinpoint)
     --port N             bind exactly this port (default: first free from 6160)
     --timeout SECONDS    idle auto-shutdown (default 900; 0 disables)
     --no-browser         do not auto-open the browser
@@ -66,7 +66,7 @@ from server_common import (
     validate_port as _validate_port,
 )
 
-logger = logging.getLogger('pinpont')
+logger = logging.getLogger('pinpoint')
 
 DOCS_DIR_NAME = 'docs'
 ASSETS_DIR_NAME = 'assets'
@@ -78,8 +78,8 @@ SERVER_LOG_NAME = 'server.log'
 ATTR_TARGET = 'data-edit-target'
 ATTR_ANNOTATION = 'data-edit-annotation'
 
-# Keep pinpont away from ppt-master's live preview / confirm UI port range
-# so a stale pinpont tab cannot shut down another tool.
+# Keep pinpoint away from ppt-master's live preview / confirm UI port range
+# so a stale pinpoint tab cannot shut down another tool.
 DEFAULT_PORT = 6160
 PUBLIC_HOST = '127.0.0.1'
 STARTUP_TIMEOUT = 15
@@ -120,7 +120,7 @@ def create_app(
     idle_timeout: int = 900,
     lock_file: Optional[Path] = None,
 ) -> Flask:
-    """Create and configure the Flask app for a pinpont workspace."""
+    """Create and configure the Flask app for a pinpoint workspace."""
     workspace = Path(workspace_dir).resolve()
     docs_dir = workspace / DOCS_DIR_NAME
     assets_dir = workspace / ASSETS_DIR_NAME
@@ -197,7 +197,7 @@ def create_app(
             doc_count = 0
         resp = jsonify({
             'status': 'ok',
-            'service': 'pinpont',
+            'service': 'pinpoint',
             'pid': os.getpid(),
             'workspace': str(workspace),
             'docs': doc_count,
@@ -535,7 +535,7 @@ def _shutdown_existing(workspace: Path) -> int:
     lock_file = _lock_file(workspace)
     existing = _read_lock(lock_file)
     if not existing:
-        logger.info('no pinpont server running — nothing to stop')
+        logger.info('no pinpoint server running — nothing to stop')
         return 0
 
     pid = _lock_pid(existing)
@@ -570,7 +570,7 @@ def _shutdown_existing(workspace: Path) -> int:
         except OSError:
             pass
     _clear_lock(lock_file)
-    logger.info('pinpont server stopped (pid=%s)', pid)
+    logger.info('pinpoint server stopped (pid=%s)', pid)
     return 0
 
 
@@ -597,7 +597,7 @@ def _wait_for_ready(port: int, proc: subprocess.Popen, workspace: Path,
                 if (
                     response.status == 200
                     and isinstance(data, dict)
-                    and data.get('service') == 'pinpont'
+                    and data.get('service') == 'pinpoint'
                     and data.get('workspace') == str(workspace)
                     and lock is not None
                     and lock.get('port') == port
@@ -629,18 +629,18 @@ def _reuse_running_server(existing: dict, *, open_browser: bool,
         port = 0
     if not port:
         logger.error(
-            'pinpont server already running (pid=%s) but its lock records no '
+            'pinpoint server already running (pid=%s) but its lock records no '
             'usable port; run --shutdown, then start again', pid,
         )
         return 1
     if requested_port is not None and port != requested_port:
         logger.error(
-            'pinpont server already running on port %s; explicit --port %s '
+            'pinpoint server already running on port %s; explicit --port %s '
             'cannot reuse it. Run --shutdown, then start again', port, requested_port,
         )
         return 1
     url = _server_url(port)
-    logger.info('pinpont server already running (pid=%s), reusing: %s', pid, url)
+    logger.info('pinpoint server already running (pid=%s), reusing: %s', pid, url)
     if open_browser and not _open_browser(url):
         logger.info('browser did not auto-open; open %s manually', url)
     return 0
@@ -655,11 +655,11 @@ def _open_browser_async(url: str, delay: float = 0.4) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description='pinpont annotation editor server',
+        description='pinpoint annotation editor server',
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('workspace', nargs='?', default='.pinpont',
-                        help='pinpont workspace root (default: ./.pinpont)')
+    parser.add_argument('workspace', nargs='?', default='.pinpoint',
+                        help='pinpoint workspace root (default: ./.pinpoint)')
     parser.add_argument('--port', type=int, default=None,
                         help=f'Exact port to listen on (default: first free port from {DEFAULT_PORT})')
     parser.add_argument('--no-browser', action='store_true', help='Do not auto-open browser')
@@ -678,7 +678,7 @@ def main(argv: Optional[list] = None) -> int:
 
     logging.basicConfig(
         level=logging.INFO,
-        format='[%(asctime)s] [%(levelname)s] pinpont: %(message)s',
+        format='[%(asctime)s] [%(levelname)s] pinpoint: %(message)s',
         datefmt='%H:%M:%S',
     )
 
@@ -738,7 +738,7 @@ def main(argv: Optional[list] = None) -> int:
                 proc.terminate()
             logger.error('server failed to become reachable: %s (log: %s)', url, log_path)
             return 1
-        logger.info('started pinpont in background: %s (pid=%s)', url, server_pid)
+        logger.info('started pinpoint in background: %s (pid=%s)', url, server_pid)
         logger.info('log: %s', log_path)
         if not args.no_browser and not _open_browser(url):
             logger.info('browser did not auto-open; open %s manually', url)

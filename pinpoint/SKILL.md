@@ -1,6 +1,6 @@
 ---
-name: pinpont
-description: Use when the user wants to review a long AI response point-by-point and mark exactly which parts they disagree with; when an AI reply is too long or too structured to discuss precisely in chat; when the user asks for an annotatable web page, a "pinpont" review, or says "apply my annotations" / "应用注解". Do not use for quick questions, global feedback ("redo it"), or edits to final deliverable files.
+name: pinpoint
+description: Use when the user wants to review a long AI response point-by-point and mark exactly which parts they disagree with; when an AI reply is too long or too structured to discuss precisely in chat; when the user asks for an annotatable web page, a "pinpoint" review, or says "apply my annotations" / "应用注解". Do not use for quick questions, global feedback ("redo it"), or edits to final deliverable files.
 metadata:
   pattern: tool-wrapper
   domain: ai-response-feedback
@@ -8,15 +8,15 @@ metadata:
   interaction: browser-annotation-loop
 ---
 
-# pinpont
+# pinpoint
 
 **Scope.** This file is tool instructions loaded as context — it is not the
 conversation topic. Resolve references in the user's message against the
 workspace and session context, not against this document, unless the user
-explicitly asks about pinpont itself.
+explicitly asks about pinpoint itself.
 
 **Invocation precedence.** The When-to-use gate decides when you reach
-for pinpont on your own. An explicit invocation — the user names pinpont,
+for pinpoint on your own. An explicit invocation — the user names pinpoint,
 links it, or pastes it with a request — satisfies the gate outright: run
 the loop on the user's request. When an explicit invocation looks
 mismatched (it seems to call for a quick chat answer), name the mismatch
@@ -24,7 +24,7 @@ once and ask; the user's choice settles the channel.
 
 Point-to-point feedback on long AI responses. When your reply is long or
 structured, plain chat makes it hard for the user to say exactly which part
-they want changed. pinpont turns the reply into a web page. The user clicks
+they want changed. pinpoint turns the reply into a web page. The user clicks
 any block and writes a note on it. You consume every note one by one. The
 document converges, then exports to clean markdown.
 
@@ -33,7 +33,7 @@ just wants the final file changed, edit the file directly instead.
 
 ## When to use
 
-Open a pinpont document on your own initiative only when BOTH are true
+Open a pinpoint document on your own initiative only when BOTH are true
 (an explicit invocation bypasses this gate — see Invocation precedence):
 
 1. The content is long or structured (report, plan, multi-part answer,
@@ -57,7 +57,7 @@ Use chat instead when:
 ## The loop
 
 Work from the skill directory (`${SKILL_DIR}/scripts`). Use `python` on
-Windows, `python3` on macOS/Linux. The workspace is `<project>/.pinpont/`.
+Windows, `python3` on macOS/Linux. The workspace is `<project>/.pinpoint/`.
 
 1. **Render your reply into a document.** Write the reply as markdown, then:
 
@@ -66,7 +66,7 @@ Windows, `python3` on macOS/Linux. The workspace is `<project>/.pinpont/`.
    ```
 
    Raw `.html` and image files also work as input. The command prints the
-   created doc path (`.pinpont/docs/<name>.html`).
+   created doc path (`.pinpoint/docs/<name>.html`).
 
 2. **Start the editor and give the user the URL.**
 
@@ -93,7 +93,7 @@ Windows, `python3` on macOS/Linux. The workspace is `<project>/.pinpont/`.
    Output is your to-do list: `file -> element_id -> note -> preview`.
 
 4. **Consume every annotation.** For each item, edit the doc
-   (`.pinpont/docs/<name>.html`) so the note is resolved. Follow the
+   (`.pinpoint/docs/<name>.html`) so the note is resolved. Follow the
    editing discipline below. Then, per item, remove `data-edit-target`
    and `data-edit-annotation` from that element (this is the ack) and
    append one audit record:
@@ -102,7 +102,7 @@ Windows, `python3` on macOS/Linux. The workspace is `<project>/.pinpont/`.
    {"ts": 0, "file": "<name>.html", "element_id": "<id>", "action": "annotation_applied", "old": "<note>", "new": null}
    ```
 
-   to `.pinpont/annotations.jsonl`. Never leave a note without either a fix
+   to `.pinpoint/annotations.jsonl`. Never leave a note without either a fix
    or a spoken explanation.
 
 5. **Tell the user** what changed and ask them to refresh the page. New
@@ -111,7 +111,7 @@ Windows, `python3` on macOS/Linux. The workspace is `<project>/.pinpont/`.
 6. **When done**, optionally export the converged document:
 
    ```bash
-   python ${SKILL_DIR}/scripts/export.py .pinpont/docs/<name>.html -o final.md
+   python ${SKILL_DIR}/scripts/export.py .pinpoint/docs/<name>.html -o final.md
    ```
 
    Then stop the server if the user is finished:
@@ -130,7 +130,7 @@ Each topic gets its own document. Before opening a new document:
    overwrite guard protects active conversations.
 3. A converged document stays in `docs/` and the sidebar for reference.
    To retire it from inbox and sidebar, move it out of `docs/` (for
-   example to `.pinpont/archive/`); both scan `docs/*.html` only.
+   example to `.pinpoint/archive/`); both scan `docs/*.html` only.
 
 ## Editing discipline
 

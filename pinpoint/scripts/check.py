@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-pinpont - Annotation inbox CLI.
+pinpoint - Annotation inbox CLI.
 
-Scans the pinpont workspace docs for pending annotations (data-edit-*
+Scans the pinpoint workspace docs for pending annotations (data-edit-*
 attributes written by the web editor) and prints them as a to-do list for
 the AI agent:  file -> element_id -> annotation text -> content preview.
 
 Usage:
     python scripts/check.py [path]
 
-    path   pinpont workspace root (default: ./.pinpont) or a single doc file
+    path   pinpoint workspace root (default: ./.pinpoint) or a single doc file
 
 Exit codes:
     0  scan completed (annotations may or may not be present)
@@ -79,10 +79,10 @@ def print_results(results: dict) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description='List pending pinpont annotations as an agent to-do list',
+        description='List pending pinpoint annotations as an agent to-do list',
     )
-    parser.add_argument('path', nargs='?', default='.pinpont',
-                        help='Workspace root (default: ./.pinpont) or a single .html doc')
+    parser.add_argument('path', nargs='?', default='.pinpoint',
+                        help='Workspace root (default: ./.pinpoint) or a single .html doc')
     return parser
 
 

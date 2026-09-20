@@ -1,4 +1,4 @@
-/* pinpont annotation editor frontend (vanilla JS, strict CSP, no framework). */
+/* pinpoint annotation editor frontend (vanilla JS, strict CSP, no framework). */
 'use strict';
 
 const state = {
@@ -356,7 +356,7 @@ async function exitPreview() {
     } catch (err) {
         // Server is stopping; a failed response is expected.
     }
-    document.body.textContent = 'pinpont server stopped. You can close this tab.';
+    document.body.textContent = 'pinpoint server stopped. You can close this tab.';
 }
 
 function updateStatusStrip() {

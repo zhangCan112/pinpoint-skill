@@ -114,6 +114,40 @@ class TestAnnotationRoundtrip:
         assert parse_annotations(root) == []
 
 
+class TestDiagramFigures:
+    def test_diagram_lines_are_annotatable_blocks(self):
+        root = parse(
+            '<html><body>'
+            '<figure class="pp-diagram" data-lang="mermaid">'
+            '<div class="line">flowchart LR</div>'
+            '<div class="line">A --&gt; B</div>'
+            '</figure></body></html>'
+        )
+        assign_temp_ids(root)
+        fig = root.find('.//figure')
+        line_ids = [div.get('id') for div in fig.findall('div')]
+        assert fig.get('id') is not None
+        assert len(line_ids) == 2
+        assert all(i and i.startswith('_pp_') for i in line_ids)
+        assert set_annotation(root, line_ids[1], 'rename node B') is True
+        anns = parse_annotations(root)
+        assert len(anns) == 1
+        assert anns[0]['tag'] == 'div'
+        assert anns[0]['preview'] == 'A --> B'
+
+    def test_diagram_line_supports_direct_edit(self):
+        root = parse(
+            '<html><body><figure class="pp-diagram" data-lang="mermaid">'
+            '<div class="line">A --&gt; B</div>'
+            '</figure></body></html>'
+        )
+        assign_temp_ids(root)
+        line = root.find('.//figure/div')
+        ok, reason = set_text(root, line.get('id'), 'A --> C')
+        assert ok and reason is None
+        assert ''.join(line.itertext()) == 'A --> C'
+
+
 class TestSetText:
     def test_set_text_on_text_only_element(self):
         root = parse('<html><body><p>old</p></body></html>')

@@ -168,6 +168,73 @@ body {
 #doc-content figure { margin: 0.8em 0; text-align: center; }
 #doc-content figcaption { color: #6a7280; font-size: 0.9em; margin-top: 6px; }
 
+/* Diagrams (mermaid): source lines live in the IR, canvas is runtime-only */
+#doc-content figure.pp-diagram {
+    position: relative;
+    margin: 1em 0;
+    padding: 14px 12px 10px;
+    border: 1px solid #e0e2ea;
+    border-radius: 6px;
+    background: #fafbfd;
+    text-align: left;
+    overflow-x: auto;
+}
+#doc-content figure.pp-diagram > div.line {
+    display: none;
+    font-family: Consolas, Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre;
+    color: #1a1f28;
+    padding: 0 6px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+#doc-content figure.pp-diagram.pp-source-mode > div.line { display: block; }
+#doc-content figure.pp-diagram.pp-source-mode > div.line:hover {
+    background: rgba(74, 158, 255, 0.10);
+}
+#doc-content figure.pp-diagram .pp-canvas {
+    display: flex;
+    justify-content: center;
+    overflow-x: auto;
+}
+#doc-content figure.pp-diagram .pp-canvas svg { max-width: 100%; }
+#doc-content figure.pp-diagram.pp-source-mode .pp-canvas { display: none; }
+#doc-content figure.pp-diagram .pp-canvas svg [id],
+#doc-content figure.pp-diagram .pp-canvas svg [data-id] { cursor: pointer; }
+#doc-content figure.pp-diagram .pp-error {
+    color: var(--danger);
+    font-size: 12.5px;
+    padding: 4px 6px;
+}
+#doc-content figure.pp-diagram .pp-toggle {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    padding: 2px 9px;
+    font-size: 11.5px;
+    color: #555c68;
+    background: #ffffff;
+    border: 1px solid #d4d7e0;
+    border-radius: 4px;
+    cursor: pointer;
+}
+#doc-content figure.pp-diagram .pp-toggle:hover {
+    color: #1a1f28;
+    border-color: var(--accent);
+}
+#doc-content figure.pp-diagram.pp-has-notes::after {
+    content: 'notes on source lines — switch to View source';
+    display: block;
+    margin-top: 6px;
+    font-size: 11.5px;
+    color: var(--annotated);
+}
+#doc-content figure.pp-diagram.pp-source-mode.pp-has-notes::after { display: none; }
+#doc-content figure.pp-diagram .pp-noted { filter: drop-shadow(0 0 3px rgba(240, 165, 0, 0.95)); }
+#doc-content figure.pp-diagram .pp-node-selected { filter: drop-shadow(0 0 3px rgba(74, 158, 255, 0.95)); }
+
 [id^="_pp_"] { cursor: pointer; }
 [id^="_pp_"]:hover {
     outline: 2px dashed rgba(74, 158, 255, 0.55);

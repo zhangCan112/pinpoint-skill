@@ -75,6 +75,19 @@ def _code_block_md(pre) -> str:
     return f'```{lang}\n' + '\n'.join(lines) + '\n```'
 
 
+def _diagram_md(figure) -> str:
+    """Round-trip a pp-diagram figure back to its fenced mermaid source."""
+    lang = figure.get('data-lang', 'mermaid') or 'mermaid'
+    lines = [
+        ''.join(div.itertext()).replace('\u00a0', '')
+        for div in figure
+        if div.tag.lower() == 'div' and 'line' in (div.get('class') or '').split()
+    ]
+    if not lines:
+        return ''
+    return f'```{lang}\n' + '\n'.join(lines) + '\n```'
+
+
 def _table_md(table) -> str:
     rows = list(table.iter('tr'))
     if not rows:
@@ -141,6 +154,10 @@ def _blocks_md(elem, out: list, indent: str = '') -> None:
         elif tag == 'hr':
             out.append(indent + '---')
         elif tag == 'figure':
+            diagram = _diagram_md(child)
+            if diagram:
+                out.append(diagram)
+                continue
             for img in child.iter('img'):
                 out.append(f'![{img.get("alt", "")}]({img.get("src", "")})')
             caption = child.find('figcaption')

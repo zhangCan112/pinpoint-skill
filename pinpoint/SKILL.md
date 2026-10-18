@@ -70,6 +70,10 @@ written into it on creation), so nothing there can reach the remote.
    Raw `.html` and image files also work as input. The command prints the
    created doc path (`.pinpoint/docs/<name>.html`).
 
+   Draw structured content instead of describing it in prose: flows,
+   architectures, sequences, state machines, taxonomies, timelines become
+   ` ```mermaid ` fenced blocks. See [Diagrams](#diagrams).
+
 2. **Start the editor and give the user the URL.**
 
    ```bash
@@ -79,9 +83,10 @@ written into it on creation), so nothing there can reach the remote.
    Give the user the deep link `http://127.0.0.1:<port>/#<doc-name>.html`
    (read the port from launch output). The page opens that document
    directly. Tell the user, in their language, in one short message: the
-   URL, that they can click any block to write an annotation for you,
-   edit plain text themselves without you, and press **Apply changes**
-   to submit. Say they should tell you when annotations are submitted.
+   URL, that they can click any block — including a single node inside a
+   rendered diagram — to write an annotation for you, edit plain text
+   themselves without you, and press **Apply changes** to submit. Say they
+   should tell you when annotations are submitted.
    Lifecycle and remote access: [`references/editor.md`](references/editor.md).
 
 3. **Wait for the user's go.** Do NOT run the inbox before the user says
@@ -121,6 +126,43 @@ written into it on creation), so nothing there can reach the remote.
 
 Protocol details (attributes, ids, audit records): [`references/protocol.md`](references/protocol.md).
 
+## Diagrams
+
+A reply that is mostly structure reads faster as a picture. When content
+shows relationships — flow, architecture, sequence, state, taxonomy,
+timeline, split of a whole — draw a mermaid block instead of stacking
+prose and nested lists. Tables stay tables; relationships get diagrams.
+
+````
+```mermaid
+flowchart LR
+    client --> gateway --> service
+    service --> db[(replica)]
+```
+````
+
+Rules:
+
+1. **One idea per diagram, under ~15 nodes.** Big diagrams cannot be
+   discussed precisely; split into one diagram per aspect. Prefer `LR`
+   (left-to-right) for pipelines, `TD` for hierarchies.
+2. **Node labels carry the domain terms** the user would use in feedback
+   ("make gateway cache" must point at an unambiguous box).
+3. **Plain text labels only.** Mermaid markup and text, no HTML in labels
+   (the editor renders with `securityLevel: strict`).
+4. **Keep diagrams as source, never rasterize.** The doc stores the
+   mermaid source; the editor renders it live and export round-trips it
+   back to a fenced block. Replacing it with an image destroys
+   node-level annotation.
+5. Works for: `flowchart`, `sequenceDiagram`, `classDiagram`,
+   `stateDiagram-v2`, `erDiagram`, `gantt`, `mindmap`, `pie`, `journey`.
+
+How annotation lands: clicking a **node inside the rendered diagram**
+annotates the source line that defines it (the `<div>` lines inside the
+figure — visible via the figure's *View source* toggle); clicking
+elsewhere annotates the **figure** (whole diagram). Consume such notes
+by editing the mermaid source line, like a code line.
+
 ## Multiple topics in one conversation
 
 Each topic gets its own document. Before opening a new document:
@@ -151,3 +193,7 @@ their element.
    editor assigns and cleans them.
 5. Code blocks have per-line `<span class="line">` elements. Edit the text
    inside a span; keep the span wrapper.
+6. Diagram figures (`figure.pp-diagram`) hold one `<div class="line">` per
+   mermaid source line. Edit the text inside a div; keep the div and the
+   figure wrapper. Never replace the source with a rendered image or SVG —
+   the editor draws it, and inline SVG would break node-level annotation.

@@ -52,6 +52,28 @@ waits for `/api/health`, records `pid` + `port` in
 running. After the AI consumes notes, the user presses **Reload** to see
 the revised document.
 
+## Diagrams
+
+Docs written from markdown may contain mermaid diagrams
+(`figure.pp-diagram` holding the source as per-line divs). The editor
+renders them client-side:
+
+- **Vendor asset**: `static/vendor/mermaid.min.js` (mermaid 11, IIFE
+  build, loaded same-origin before `app.js`). No CDN, no network at edit
+  time; the strict CSP stands (`script-src 'self'`). If the file is
+  missing, diagrams degrade to their source lines — still annotatable.
+- **Rendering**: `securityLevel: strict` (labels sanitized, click
+  callbacks off), `theme: default`, rendered per figure on load and
+  Reload. A failed render shows the error and falls back to source view.
+- **Toggle**: each figure carries a *View source* / *View diagram*
+  toggle. In source view the per-line divs behave like code lines —
+  clickable, annotatable, directly editable.
+- **Node clicks**: clicking a drawn node selects the source line that
+  defines it (heuristic: mermaid element id/label matched against the
+  source lines, word-boundary), so the annotation lands on an element
+  that exists in the doc. Clicking anything else selects the figure.
+  Lines carrying annotations glow amber in the rendered diagram.
+
 ## Remote access
 
 On a remote host run with `--no-browser`, then with `<P>` from launch

@@ -97,6 +97,33 @@ class TestExportBody:
         md = export_body(body)
         assert 'a\n\nb' in md
 
+    def test_diagram_round_trips_to_mermaid_fence(self):
+        body = (
+            '<figure class="pp-diagram" data-lang="mermaid">'
+            '<div class="line">flowchart LR</div>'
+            '<div class="line">A --&gt; B</div>'
+            '</figure>'
+        )
+        md = export_body(body)
+        assert '```mermaid\nflowchart LR\nA --> B\n```' in md
+
+    def test_annotated_diagram_line_exports_source_only(self):
+        body = (
+            '<figure class="pp-diagram" data-lang="mermaid">'
+            '<div class="line">flowchart LR</div>'
+            '<div class="line" id="_pp_3" data-edit-target="true" data-edit-annotation="rename B">B --&gt; C</div>'
+            '</figure>'
+        )
+        md = export_body(body)
+        assert 'data-edit' not in md and 'rename B' not in md
+        assert 'B --> C' in md
+
+    def test_image_figure_still_exports(self):
+        body = '<figure><img src="../assets/pic.png" alt="pic"/><figcaption>Caption</figcaption></figure>'
+        md = export_body(body)
+        assert '![pic](../assets/pic.png)' in md
+        assert '*Caption*' in md
+
 
 class TestExportDocument:
     def test_full_doc_file(self, tmp_path: Path):
@@ -108,6 +135,17 @@ class TestExportDocument:
         )
         md = export_document(doc)
         assert '# Plan' in md and '```python' in md
+
+    def test_render_then_export_preserves_mermaid(self, tmp_path: Path):
+        import render as render_mod
+        src = tmp_path / 'arch.md'
+        src.write_text(
+            '# Arch\n\n```mermaid\nflowchart LR\nclient --> server\n```\n',
+            encoding='utf-8',
+        )
+        assert render_mod.main(['--out', str(tmp_path), str(src)]) == 0
+        md = export_document(tmp_path / 'docs' / 'arch.html')
+        assert '```mermaid\nflowchart LR\nclient --> server\n```' in md
 
 
 class TestCli:

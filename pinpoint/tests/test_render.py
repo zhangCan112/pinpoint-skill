@@ -119,6 +119,41 @@ class TestRenderBlocks:
         assert '<blockquote>' in body
 
 
+class TestDiagramBlocks:
+    def test_mermaid_becomes_diagram_figure(self):
+        md = "```mermaid\nflowchart LR\nA --> B\n```\n"
+        body = render_blocks(md)
+        assert '<figure class="pp-diagram" data-lang="mermaid">' in body
+        assert '<div class="line">flowchart LR</div>' in body
+        assert '<div class="line">A --&gt; B</div>' in body
+        assert '<pre' not in body
+        assert '<span' not in body
+
+    def test_blank_line_gets_placeholder(self):
+        md = "```mermaid\ngraph TD\n\nA --> B\n```\n"
+        body = render_blocks(md)
+        assert body.count('<div class="line">') == 3
+        assert '<div class="line">\u00a0</div>' in body
+
+    def test_lang_matched_case_insensitively(self):
+        body = render_blocks("```Mermaid\npie\n```\n")
+        assert 'data-lang="mermaid"' in body
+        assert '<figure class="pp-diagram"' in body
+
+    def test_no_ids_at_rest(self):
+        body = render_blocks("```mermaid\nA --> B\n```\n")
+        assert ' id=' not in body
+
+    def test_output_is_xml_safe(self):
+        md = "```mermaid\nflowchart LR\nA[Draft & plan] --> B{Review}\n```\n"
+        body_parses(render_blocks(md))
+
+    def test_regular_code_stays_a_code_block(self):
+        body = render_blocks("```python\nx = 1\n```\n")
+        assert '<pre' in body and 'data-lang="python"' in body
+        assert '<figure' not in body
+
+
 class TestXmlSafe:
     def test_named_entities_become_numeric(self):
         assert xml_safe('a&nbsp;b') == 'a&#160;b'

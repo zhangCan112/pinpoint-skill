@@ -142,6 +142,42 @@ class TestAnnotate:
         assert c.delete('/api/doc/review.html/annotate/_pp_9').status_code == 404
 
 
+class TestDiagramDocs:
+    DIAGRAM_DOC = """<!DOCTYPE html>
+<html><head><meta charset="utf-8"/><title>flow</title></head><body>
+<p>Architecture overview.</p>
+<figure class="pp-diagram" data-lang="mermaid"><div class="line">flowchart LR</div><div class="line">client --&gt; gateway</div><div class="line">gateway --&gt; db</div></figure>
+</body></html>
+"""
+
+    def test_diagram_lines_addressable_and_annotatable(self, client, workspace):
+        c, _, _ = client
+        (workspace / 'docs' / 'flow.html').write_text(self.DIAGRAM_DOC, encoding='utf-8')
+        data = c.get('/api/doc/flow.html').get_json()
+        assert 'pp-diagram' in data['content']
+        # Document order: _pp_0 = p, _pp_1 = figure, _pp_2.. = source lines.
+        assert 'id="_pp_2"' in data['content']
+        resp = c.post('/api/doc/flow.html/annotate',
+                      json={'element_id': '_pp_3', 'annotation': 'rename gateway to edge'})
+        assert resp.status_code == 200
+        assert c.post('/api/save-all').status_code == 200
+        disk = (workspace / 'docs' / 'flow.html').read_text(encoding='utf-8')
+        assert 'rename gateway to edge' in disk
+        anns = parse_annotations(parse_doc_text(disk))
+        assert len(anns) == 1
+        assert anns[0]['tag'] == 'div'
+        assert anns[0]['preview'] == 'client --> gateway'
+
+    def test_diagram_line_direct_edit(self, client, workspace):
+        c, _, _ = client
+        (workspace / 'docs' / 'flow.html').write_text(self.DIAGRAM_DOC, encoding='utf-8')
+        resp = c.post('/api/doc/flow.html/edit',
+                      json={'element_id': '_pp_3', 'text': 'client --> edge'})
+        assert resp.status_code == 200
+        data = c.get('/api/doc/flow.html').get_json()
+        assert 'client --&gt; edge' in data['content']
+
+
 class TestDirectEdit:
     def test_stage_text_edit_shows_in_preview(self, client):
         c, _, _ = client

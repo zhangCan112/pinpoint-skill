@@ -30,6 +30,13 @@ refers to:
   aside nav`. Inline elements (`strong em code a`) are reached through
   their block ancestor. Code blocks get one `<span class="line">` per
   source line, each addressable.
+- Diagram figures (`figure.pp-diagram`, from ` ```mermaid ` fences) get
+  one `<div class="line">` per source line. The editor renders the
+  source into an SVG at runtime and maps drawn nodes back to the line
+  that defines them, so a node click annotates that line's div; the
+  mapping is heuristic (mermaid id/label text matched against source
+  lines) and falls back to the whole figure. The SVG itself never
+  enters the doc file — only the source lines do.
 
 ## Lifecycle
 
@@ -90,13 +97,16 @@ Common record shape: `{ts, file, element_id, action, old, new}`.
 (no ids, no annotations, XML-well-formed):
 
 - **Markdown** — split into top-level blocks; fenced code blocks become
-  per-line spans; local images are copied to `.pinpoint/assets/` and `src`
-  rewritten to `../assets/<name>`; named HTML entities are converted to
-  numeric form so ElementTree can parse the result.
+  per-line spans; ` ```mermaid ` fences become `figure.pp-diagram` with
+  per-line divs (rendered as diagrams by the editor); local images are
+  copied to `.pinpoint/assets/` and `src` rewritten to `../assets/<name>`;
+  named HTML entities are converted to numeric form so ElementTree can
+  parse the result.
 - **HTML** — sanitized (scripts, iframes, objects, embeds, `on*` handlers,
   and `javascript:` URLs are stripped) and serialized as well-formed XHTML.
   Not full HTML5 error recovery: heavily malformed markup may nest oddly.
-- **Image** — wrapped in a `<figure>`, asset copied. v1 annotates the
-  image as a whole; region boxes are future work.
+- **Image** — wrapped in a `<figure>`, asset copied. Images are annotated
+  as a whole; for content you control, prefer a mermaid diagram, where
+  annotation reaches individual nodes via their source lines.
 
 UTF-8 BOM in input files is tolerated on read.

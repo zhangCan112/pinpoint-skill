@@ -163,6 +163,236 @@ function renderContent() {
         const el = container.querySelector(`[id="${CSS.escape(id)}"]`);
         if (el) el.classList.add('has-annotation');
     }
+    enhanceDiagrams();
+}
+
+// ---------------------------------------------------------------------------
+// Diagrams (mermaid)
+// ---------------------------------------------------------------------------
+// Doc IR keeps diagram source as <figure class="pp-diagram"> with one
+// <div class="line"> per source line. Here we render that source into an
+// SVG canvas (vendored mermaid.js) and route clicks back into the protocol:
+// a click on a drawn node selects the source line defining it (so the
+// annotation lands on an element that exists in the doc on disk); anything
+// else selects the figure, annotating the diagram as a whole.
+
+let mermaidInitialized = false;
+let diagramSeq = 0;
+
+const MERMAID_ID_PREFIXES = [
+    'flowchart-', 'state-', 'statediagram-state-', 'classId-', 'mindmap-', 'er-',
+];
+
+function ensureMermaid() {
+    if (!window.mermaid) return false;
+    if (!mermaidInitialized) {
+        window.mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: 'strict',
+            theme: 'default',
+        });
+        mermaidInitialized = true;
+    }
+    return true;
+}
+
+function escapeRegExp(text) {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function diagramLines(fig) {
+    return Array.from(fig.children).filter(
+        (el) => el.tagName === 'DIV' && el.classList.contains('line'),
+    );
+}
+
+function lineTextsOf(lines) {
+    return lines.map((el) => el.textContent.replace(/\u00a0/g, ''));
+}
+
+function tokensFromId(raw) {
+    let value = raw;
+    for (const prefix of MERMAID_ID_PREFIXES) {
+        if (value.startsWith(prefix)) value = value.slice(prefix.length);
+    }
+    value = value.replace(/[-_]\d+$/, '');
+    if (!value) return [];
+    if (value.startsWith('L_')) {
+        // Flowchart edge path L_A_B_0: both endpoints are useful tokens.
+        return value.slice(2).replace(/_\d+$/, '').split('_');
+    }
+    return [value];
+}
+
+function wordMatch(token, text) {
+    // Word-boundary match so node "B" does not hit a line defining "AB".
+    const pattern = new RegExp(
+        `(^|[^A-Za-z0-9_])${escapeRegExp(token)}($|[^A-Za-z0-9_])`,
+    );
+    return pattern.test(text);
+}
+
+function lineIndexForTokens(tokens, lineTexts) {
+    if (!tokens.length) return -1;
+    if (tokens.length === 1) {
+        return lineTexts.findIndex((t) => wordMatch(tokens[0], t));
+    }
+    // An edge's id carries both endpoints, in traversal order: prefer the
+    // line mentioning them in that order, then in any order, then the first.
+    const inOrder = lineTexts.findIndex((t) => {
+        let pos = 0;
+        for (const token of tokens) {
+            const pattern = new RegExp(
+                `(^|[^A-Za-z0-9_])${escapeRegExp(token)}($|[^A-Za-z0-9_])`,
+            );
+            const found = pattern.exec(t.slice(pos));
+            if (!found) return false;
+            pos += found.index + found[0].length;
+        }
+        return true;
+    });
+    if (inOrder !== -1) return inOrder;
+    const all = lineTexts.findIndex(
+        (t) => tokens.every((token) => wordMatch(token, t)),
+    );
+    if (all !== -1) return all;
+    return lineTexts.findIndex((t) => wordMatch(tokens[0], t));
+}
+
+function lineIndexForLabel(label, lineTexts) {
+    const text = label.trim();
+    if (text.length < 2) return -1;
+    return lineTexts.findIndex((t) => t.includes(text));
+}
+
+function buildNodeMap(canvas, lines) {
+    // Best-effort mapping of drawn SVG parts -> source line element id.
+    const lineTexts = lineTextsOf(lines);
+    const map = [];
+    for (const el of canvas.querySelectorAll('svg [id], svg [data-id]')) {
+        const raw = el.getAttribute('data-id') || el.getAttribute('id');
+        let idx = -1;
+        if (raw) {
+            idx = lineIndexForTokens(tokensFromId(raw), lineTexts);
+        }
+        if (idx === -1) {
+            idx = lineIndexForLabel(el.textContent || '', lineTexts);
+        }
+        if (idx !== -1 && lines[idx].id) {
+            map.push({ el, lineId: lines[idx].id });
+        }
+    }
+    return map;
+}
+
+function markNotedNodes(fig) {
+    const map = fig.__ppMap || [];
+    let any = false;
+    for (const entry of map) {
+        const noted = state.annotations.has(entry.lineId);
+        entry.el.classList.toggle('pp-noted', noted);
+        any = any || noted;
+    }
+    fig.classList.toggle('pp-has-notes', any);
+}
+
+function updateDiagramNodeSelection(id) {
+    for (const fig of document.querySelectorAll('figure.pp-diagram')) {
+        for (const entry of fig.__ppMap || []) {
+            entry.el.classList.toggle('pp-node-selected', entry.lineId === id);
+        }
+    }
+}
+
+function setupDiagramFigure(fig) {
+    if (fig.dataset.ppReady === 'true') return;
+    fig.dataset.ppReady = 'true';
+
+    const lines = diagramLines(fig);
+    const source = lineTextsOf(lines).join('\n');
+
+    const canvas = document.createElement('div');
+    canvas.className = 'pp-canvas';
+    fig.appendChild(canvas);
+
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'pp-toggle';
+    toggle.textContent = 'View source';
+    toggle.title = 'Switch between the rendered diagram and its mermaid source';
+    fig.appendChild(toggle);
+
+    function setSourceMode(on) {
+        fig.dataset.ppSource = on ? 'true' : 'false';
+        fig.classList.toggle('pp-source-mode', on);
+        toggle.textContent = on ? 'View diagram' : 'View source';
+    }
+
+    toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setSourceMode(fig.dataset.ppSource !== 'true');
+    });
+
+    fig.addEventListener('click', (e) => {
+        if (e.target.closest('.pp-toggle')) return;
+        e.stopPropagation(); // mermaid assigns its own ids inside the svg
+        // A click on a visible source line (or the figure chrome) keeps the
+        // default closest-[id] behaviour.
+        const idEl = e.target.closest('[id]');
+        if (idEl && fig.contains(idEl) && !canvas.contains(idEl) && idEl.id) {
+            select(idEl.id);
+            return;
+        }
+        let hit = null;
+        for (let node = e.target; node && node !== fig; node = node.parentElement) {
+            const found = (fig.__ppMap || []).find((m) => m.el === node);
+            if (found) { hit = found; break; }
+        }
+        if (hit) {
+            select(hit.lineId);
+            if (fig.dataset.ppSource !== 'true') {
+                fig.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }
+        } else if (fig.id) {
+            select(fig.id);
+        } else {
+            deselect();
+        }
+    });
+
+    async function renderDiagram() {
+        if (!ensureMermaid()) {
+            toggle.hidden = true;
+            setSourceMode(true); // degrade: keep source visible + annotatable
+            return;
+        }
+        try {
+            const id = `pp-mermaid-${++diagramSeq}`;
+            const { svg } = await window.mermaid.render(id, source);
+            if (!canvas.isConnected) return; // doc switched mid-render
+            canvas.innerHTML = svg;
+            fig.__ppMap = buildNodeMap(canvas, lines);
+            markNotedNodes(fig);
+            updateDiagramNodeSelection(state.selectedId);
+        } catch (err) {
+            if (!canvas.isConnected) return;
+            fig.classList.add('pp-failed');
+            const note = document.createElement('div');
+            note.className = 'pp-error';
+            note.textContent = `Diagram render failed: ${err && err.message ? err.message : err}`;
+            canvas.replaceChildren(note);
+            setSourceMode(true);
+        }
+    }
+
+    setSourceMode(false);
+    renderDiagram();
+}
+
+function enhanceDiagrams() {
+    for (const fig of document.querySelectorAll('figure.pp-diagram')) {
+        setupDiagramFigure(fig);
+    }
 }
 
 function select(id) {
@@ -194,6 +424,7 @@ function select(id) {
     } else {
         editInput.classList.add('hidden');
     }
+    updateDiagramNodeSelection(id);
 }
 
 function deselect() {
@@ -202,6 +433,7 @@ function deselect() {
         if (el) el.classList.remove('selected');
     }
     state.selectedId = null;
+    updateDiagramNodeSelection(null);
     $('#selected-element').classList.add('empty');
     $('#selected-element').textContent = 'Click a block in the document to select it';
     $('#annotation-input').classList.add('hidden');
@@ -232,7 +464,12 @@ function renderAnnotations() {
         locate.addEventListener('click', () => {
             select(id);
             const targetEl = contentElement(id);
-            if (targetEl) targetEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            if (!targetEl) return;
+            // Source lines of a diagram rendered in diagram mode are hidden;
+            // scroll to the figure instead (the mapped nodes glow amber/blue).
+            const fig = targetEl.closest('figure.pp-diagram');
+            const scrollTarget = fig && fig.dataset.ppSource !== 'true' ? fig : targetEl;
+            scrollTarget.scrollIntoView({ block: 'center', behavior: 'smooth' });
         });
         const remove = document.createElement('button');
         remove.className = 'ann-remove';
@@ -281,6 +518,9 @@ function renderContentMarkers() {
     const container = $('#doc-content');
     for (const el of container.querySelectorAll('[id]')) {
         el.classList.toggle('has-annotation', state.annotations.has(el.id));
+    }
+    for (const fig of container.querySelectorAll('figure.pp-diagram')) {
+        markNotedNodes(fig);
     }
 }
 

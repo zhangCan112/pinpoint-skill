@@ -4,7 +4,9 @@ pinpoint - Render an AI response into the HTML intermediate representation.
 
 Intake formats (all normalized to the same IR):
     *.md / *.markdown  -> block-rendered HTML (code fenced blocks get
-                          per-line <span class="line"> for line-level anchors)
+                          per-line <span class="line"> for line-level anchors;
+                          ```mermaid fences become <figure class="pp-diagram">
+                          diagrams with per-line <div class="line">)
     *.html / *.htm     -> sanitized, well-formed XHTML fragment
     image files        -> wrapped in a <figure> page, asset copied
 
@@ -44,6 +46,11 @@ import markdown as md_lib
 from bs4 import BeautifulSoup, Comment, NavigableString, Tag
 
 MARKDOWN_EXTENSIONS = ['tables']
+
+# Fenced-block languages rendered as annotatable diagrams instead of code.
+# The editor draws these client-side (mermaid.js); the doc keeps the source,
+# one <div class="line"> per line, so notes can target a single node line.
+DIAGRAM_LANGS = frozenset({'mermaid'})
 
 IMAGE_SUFFIXES = {'.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.bmp'}
 
@@ -208,6 +215,25 @@ def _render_code(block: Block) -> str:
     return f'<pre{lang_attr}><code>{"".join(spans)}</code></pre>'
 
 
+def _render_diagram(block: Block) -> str:
+    """A mermaid block becomes a diagram figure, not a code block.
+
+    One <div class="line"> per source line: divs are annotatable blocks, so
+    a note can land on the exact line that defines a node, and direct text
+    edits work too. The editor renders the source into an SVG canvas and
+    routes clicks on drawn nodes back to these lines.
+    """
+    lines = []
+    for line in block.lines:
+        text = html_mod.escape(line, quote=False) or '\u00a0'
+        lines.append(f'<div class="line">{text}</div>')
+    lang = html_mod.escape(block.lang.lower(), quote=True)
+    return (
+        f'<figure class="pp-diagram" data-lang="{lang}">'
+        f'{"".join(lines)}</figure>'
+    )
+
+
 def _render_markdown_block(block: Block) -> str:
     rendered = md_lib.markdown(
         '\n'.join(block.lines), extensions=MARKDOWN_EXTENSIONS,
@@ -220,6 +246,8 @@ def _render_markdown_block(block: Block) -> str:
 
 def render_block(block: Block) -> str:
     if block.kind == 'code':
+        if block.lang.lower() in DIAGRAM_LANGS:
+            return _render_diagram(block)
         return _render_code(block)
     if block.kind == 'hr':
         return '<hr/>'

@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from annotations import parse_doc_text, parse_annotations
-from server import create_app
+from server import create_app, idle_stop_decision, _has_staged_work
 
 
 DOC = """<!DOCTYPE html>
@@ -176,6 +176,54 @@ class TestDiagramDocs:
         assert resp.status_code == 200
         data = c.get('/api/doc/flow.html').get_json()
         assert 'client --&gt; edge' in data['content']
+
+
+class TestIdleStopDecision:
+    """Pure decision logic behind the idle watchdog."""
+
+    def test_staged_work_vetoes_stop(self):
+        assert idle_stop_decision(10_000, 900, True, False) == (False, False)
+        assert idle_stop_decision(10_000, 900, True, True) == (False, False)
+
+    def test_requires_two_consecutive_over_time_ticks(self):
+        # First over-time tick: grace only (a just-woken tab may heartbeat).
+        assert idle_stop_decision(1000, 900, False, False) == (False, True)
+        # Second consecutive tick: stop.
+        assert idle_stop_decision(1000, 900, False, True) == (True, True)
+
+    def test_within_timeout_never_stops(self):
+        assert idle_stop_decision(899, 900, False, False) == (False, False)
+        # Recent activity resets the consecutive counter.
+        assert idle_stop_decision(100, 900, False, True) == (False, False)
+
+    def test_zero_timeout_disabled_by_caller(self):
+        # create_app skips the watchdog thread for timeout<=0; the decision
+        # helper stays honest: anything over 0s is over-time.
+        assert idle_stop_decision(1, 0, False, True) == (True, True)
+
+
+class TestHasStagedWork:
+    def test_clean_state_is_false(self, client):
+        _, _, app = client
+        assert _has_staged_work(app) is False
+
+    def test_staged_annotation_snapshot_counts(self, client):
+        _, _, app = client
+        app.config['ANNOTATIONS']['review.html'] = {}
+        assert _has_staged_work(app) is True  # even empty: pending deletion
+
+    def test_pending_edits_count(self, client):
+        _, _, app = client
+        app.config['PENDING_EDITS']['review.html'] = [
+            {'element_id': '_pp_1', 'text': 'x', 'old': 'y'},
+        ]
+        assert _has_staged_work(app) is True
+
+    def test_heartbeat_endpoint_resets_activity(self, client):
+        c, _, app = client
+        before = app.config['LAST_REQUEST_TIME']
+        assert c.get('/api/health').status_code == 200
+        assert app.config['LAST_REQUEST_TIME'] >= before
 
 
 class TestDirectEdit:

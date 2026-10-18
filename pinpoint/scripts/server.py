@@ -16,7 +16,8 @@ Usage:
 
     workspace            pinpoint workspace root (default: ./.pinpoint)
     --port N             bind exactly this port (default: first free from 6160)
-    --timeout SECONDS    idle auto-shutdown (default 900; 0 disables)
+    --timeout SECONDS    idle auto-stop (default 900; 0 disables; deferred
+                         while unapplied staged work exists)
     --no-browser         do not auto-open the browser
     --daemon             start in background, return when reachable
     --shutdown           stop the running server for this workspace
@@ -119,6 +120,31 @@ def _serialize_document(root: ET.Element) -> str:
     return '<!DOCTYPE html>\n' + ET.tostring(root, encoding='unicode') + '\n'
 
 
+def idle_stop_decision(elapsed: float, timeout: int, has_staged: bool,
+                       over_time_seen: bool) -> tuple:
+    """Decide whether the idle watchdog should stop the server.
+
+    Returns ``(stop, over_time_seen_next)``. Staged work vetoes the stop —
+    unapplied user input outranks process hygiene. A fresh over-time
+    reading needs a second consecutive tick before stopping, so a tab
+    that just woke up (and is about to heartbeat) wins the race.
+    """
+    if has_staged:
+        return False, False
+    if elapsed > timeout:
+        return (True, True) if over_time_seen else (False, True)
+    return False, False
+
+
+def _has_staged_work(app) -> bool:
+    """True when any doc has unapplied annotations or direct edits staged.
+
+    A staged-but-empty annotation snapshot counts too: it encodes the
+    user's "deleted every note" intent, still pending Apply.
+    """
+    return bool(app.config['ANNOTATIONS'] or app.config['PENDING_EDITS'])
+
+
 def create_app(
     workspace_dir: str,
     idle_timeout: int = 900,
@@ -179,12 +205,27 @@ def create_app(
     def _idle_watchdog():
         if idle_timeout <= 0:
             return
+        over_time_seen = False
+        deferred_logged = False
         while True:
             time.sleep(10)
             elapsed = time.time() - app.config['LAST_REQUEST_TIME']
-            if elapsed > idle_timeout:
+            staged = _has_staged_work(app)
+            stop, over_time_seen = idle_stop_decision(
+                elapsed, idle_timeout, staged, over_time_seen,
+            )
+            if stop:
                 logger.info('idle for %ds, shutting down', idle_timeout)
                 _exit_with_lock_release(0)
+                return
+            if staged and elapsed > idle_timeout and not deferred_logged:
+                deferred_logged = True
+                logger.info(
+                    'idle %ds but unapplied staged work present; deferring auto-stop',
+                    int(elapsed),
+                )
+            if elapsed <= idle_timeout:
+                deferred_logged = False
 
     threading.Thread(target=_idle_watchdog, daemon=True).start()
 

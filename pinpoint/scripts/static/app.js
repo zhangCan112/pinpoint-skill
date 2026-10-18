@@ -622,6 +622,18 @@ function updateStatusStrip() {
 // Wiring
 // ---------------------------------------------------------------------------
 
+function startHeartbeat() {
+    // The idle watchdog counts requests, so an open tab keeps the server
+    // alive however idle the user is. Beat immediately on wake/visibility
+    // so a just-resumed tab wins the race with the watchdog tick.
+    const beat = () => { api('/api/health').catch(() => {}); };
+    window.setInterval(beat, 60 * 1000);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') beat();
+    });
+    window.addEventListener('pageshow', beat);
+}
+
 function init() {
     $('#doc-content').addEventListener('click', (e) => {
         const target = e.target.closest('[id]');
@@ -662,6 +674,7 @@ function init() {
     });
 
     loadDocs();
+    startHeartbeat();
 }
 
 init();

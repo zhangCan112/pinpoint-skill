@@ -26,12 +26,18 @@ waits for `/api/health`, records `pid` + `port` in
   (and prints its URL) instead of failing. A different explicit `--port`
   while one runs is an error — `--shutdown` first.
 - **Idle timeout**: 900 s without any request stops the server
-  (`--timeout N` overrides, `0` disables). Unapplied staged work is lost
-  on timeout — the UI warns before closing the tab while anything is
-  staged.
+  (`--timeout N` overrides, `0` disables) — but only when nothing is
+  staged and no editor tab is open. The page heartbeats `/api/health`
+  every 60 s (and immediately on tab wake), so an open tab keeps the
+  server alive through any review gap. While unapplied staged work
+  exists, auto-stop never fires at all; an over-time reading also needs
+  two consecutive watchdog ticks (wake grace). Staged work is lost only
+  via the **Exit** button (the UI warns first), `--shutdown`, or an
+  external kill — never via idleness.
 - **Stop conditions**: **Exit** button in the browser (only UI action that
-  stops the server), `--shutdown`, idle timeout, or external kill.
-  Stale locks (dead pid) are overwritten on next launch.
+  stops the server), `--shutdown`, idle timeout (see its guard above),
+  or external kill. Stale locks (dead pid) are overwritten on next
+  launch.
 
 ## The two channels
 

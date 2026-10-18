@@ -1,15 +1,19 @@
 /* Verify the diagram node->line mapping heuristic against the vendored
  * mermaid bundle, without a browser: render diagrams in jsdom, then run
- * the same id/token/label logic app.js uses and report what maps where.
+ * the REAL mapping module the editor ships — static/diagram.js, imported
+ * below — and report what maps where. No copied logic lives here, so the
+ * verifier cannot drift from the editor.
  *
  * Manual dev tool (needs node + jsdom; not part of pytest):
  *   npm install jsdom            # anywhere resolvable, or set JS DOM_PATH
  *   node scripts/verify-mapping.cjs
  *
  * Re-run after upgrading static/vendor/mermaid.min.js — if node ids change
- * format, update MERMAID_ID_PREFIXES / tokensFromId in static/app.js to match.
+ * format, update MERMAID_ID_PREFIXES / tokensFromId in static/diagram.js
+ * to match.
  */
 const path = require('path');
+const { pathToFileURL } = require('url');
 
 function loadJsdom() {
     const candidates = [
@@ -65,85 +69,8 @@ if (!mermaid) {
     process.exit(1);
 }
 
-// --- logic under test, copied verbatim from app.js -------------------------
-const MERMAID_ID_PREFIXES = [
-    'flowchart-', 'state-', 'statediagram-state-', 'classId-', 'mindmap-', 'er-',
-];
-
-function escapeRegExp(text) {
-    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function tokensFromId(raw) {
-    let value = raw;
-    for (const prefix of MERMAID_ID_PREFIXES) {
-        if (value.startsWith(prefix)) value = value.slice(prefix.length);
-    }
-    value = value.replace(/[-_]\d+$/, '');
-    if (!value) return [];
-    if (value.startsWith('L_')) {
-        return value.slice(2).replace(/_\d+$/, '').split('_');
-    }
-    return [value];
-}
-
-function wordMatch(token, text) {
-    const pattern = new RegExp(
-        `(^|[^A-Za-z0-9_])${escapeRegExp(token)}($|[^A-Za-z0-9_])`,
-    );
-    return pattern.test(text);
-}
-
-function lineIndexForTokens(tokens, lineTexts) {
-    if (!tokens.length) return -1;
-    if (tokens.length === 1) {
-        return lineTexts.findIndex((t) => wordMatch(tokens[0], t));
-    }
-    const inOrder = lineTexts.findIndex((t) => {
-        let pos = 0;
-        for (const token of tokens) {
-            const pattern = new RegExp(
-                `(^|[^A-Za-z0-9_])${escapeRegExp(token)}($|[^A-Za-z0-9_])`,
-            );
-            const found = pattern.exec(t.slice(pos));
-            if (!found) return false;
-            pos += found.index + found[0].length;
-        }
-        return true;
-    });
-    if (inOrder !== -1) return inOrder;
-    const all = lineTexts.findIndex(
-        (t) => tokens.every((token) => wordMatch(token, t)),
-    );
-    if (all !== -1) return all;
-    return lineTexts.findIndex((t) => wordMatch(tokens[0], t));
-}
-
-function lineIndexForLabel(label, lineTexts) {
-    const text = label.trim();
-    if (text.length < 2) return -1;
-    return lineTexts.findIndex((t) => t.includes(text));
-}
-
-function buildNodeMap(canvas, lines) {
-    const lineTexts = lines.map((el) => el.textContent.replace(/\u00a0/g, ''));
-    const map = [];
-    for (const el of canvas.querySelectorAll('svg [id], svg [data-id]')) {
-        const raw = el.getAttribute('data-id') || el.getAttribute('id');
-        let idx = -1;
-        if (raw) {
-            idx = lineIndexForTokens(tokensFromId(raw), lineTexts);
-        }
-        if (idx === -1) {
-            idx = lineIndexForLabel(el.textContent || '', lineTexts);
-        }
-        if (idx !== -1 && lines[idx].id) {
-            map.push({ el, lineId: lines[idx].id, raw });
-        }
-    }
-    return map;
-}
-// ---------------------------------------------------------------------------
+// The mapping under test: the exact module the editor loads.
+let buildNodeMap;
 
 async function check(name, source) {
     const lines = source.split('\n');
@@ -162,7 +89,8 @@ async function check(name, source) {
     for (const m of map) {
         const tag = m.el.tagName.toLowerCase();
         const cls = (m.el.getAttribute('class') || '').split(/\s+/).slice(0, 2).join('.');
-        console.log(`${tag} ${cls} id=${JSON.stringify(m.raw)} -> ${m.lineId} : ${JSON.stringify(lines[Number(m.lineId.slice(2))])}`);
+        const raw = m.el.getAttribute('data-id') || m.el.getAttribute('id');
+        console.log(`${tag} ${cls} id=${JSON.stringify(raw)} -> ${m.lineId} : ${JSON.stringify(lines[Number(m.lineId.slice(2))])}`);
     }
     // Which ids exist but did NOT map?
     const mapped = new Set(map.map((m) => m.el));
@@ -174,6 +102,9 @@ async function check(name, source) {
 }
 
 (async () => {
+    ({ buildNodeMap } = await import(
+        pathToFileURL(path.join(SKILL, 'static', 'diagram.js')).href
+    ));
     await check('flow', 'flowchart LR\n    client --> gateway --> service\n    service --> db[(replica)]');
     await check('flow-multiline', 'flowchart TD\n    A[Draft] --> B{Review}\n    B -->|reject| A\n    B -->|approve| C[Published]');
     await check('seq', 'sequenceDiagram\n    Alice->>Bob: Hi\n    Bob-->>Alice: Hello');

@@ -194,6 +194,11 @@ function select(id) {
     info.appendChild(preview);
 
     $('#annotation-input').classList.remove('hidden');
+    // Backfill an existing annotation so re-clicking a noted block shows
+    // (and allows editing) its note; the button reflects update semantics.
+    const existing = state.annotations.get(id);
+    $('#annotation-text').value = existing || '';
+    $('#btn-add-annotation').textContent = existing ? 'Update annotation' : 'Add annotation';
     const editInput = $('#edit-input');
     if (el.children.length === 0) {
         editInput.classList.remove('hidden');
@@ -283,6 +288,7 @@ async function addAnnotation() {
         state.annotations.set(state.selectedId, text);
         state.dirty = true;
         $('#annotation-text').value = '';
+        $('#btn-add-annotation').textContent = 'Update annotation';
         renderAnnotations();
         renderContentMarkers();
         updateStatusStrip();
@@ -307,6 +313,10 @@ async function removeAnnotation(id) {
         });
         state.annotations.delete(id);
         state.dirty = true;
+        if (id === state.selectedId) {
+            $('#annotation-text').value = '';
+            $('#btn-add-annotation').textContent = 'Add annotation';
+        }
         renderAnnotations();
         renderContentMarkers();
         updateStatusStrip();

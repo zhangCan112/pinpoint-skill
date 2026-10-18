@@ -47,7 +47,9 @@ waits for `/api/health`, records `pid` + `port` in
 
 - **Annotate** (AI changes): click a block, write the instruction,
   **Add annotation**. Staged in server memory. Nothing touches disk until
-  **Apply changes**.
+  **Apply changes**. Re-clicking an annotated block (or its entry in the
+  annotation list) backfills the note for review; editing and re-adding
+  updates it — the button switches to **Update annotation**.
 - **Direct edit** (no AI): click a plain-text block, edit the text,
   **Stage edit**. Shows in the preview at once. Plain-text blocks only —
   a paragraph with inline markup (`<strong>`, links) must use annotation.
